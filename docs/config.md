@@ -686,6 +686,12 @@ Default: `false`
 
 Honor a shader's output alpha so transparent pixels reveal whatever sits below the background — e.g. a wlr-layer-shell Background surface from an external wallpaper engine. Forces the shader onto the live path, so cache_shader has no effect while this is on. Image backgrounds ignore it: tile/wallpaper PNGs with an alpha channel become see-through automatically. See docs/shaders.md.
 
+### `show_on_lock_screen`
+
+Default: `false`
+
+Render the configured background underneath transparent ext-session-lock-v1 surfaces. Ordinary windows and layer-shell surfaces remain excluded. Keep this off for lock clients that paint an opaque background.
+
 ### `cache_budget_mb`
 
 Default: `128`

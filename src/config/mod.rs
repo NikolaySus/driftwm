@@ -767,6 +767,7 @@ impl Config {
         }
 
         let background = BackgroundConfig {
+            show_on_lock_screen: raw.background.show_on_lock_screen.unwrap_or(false),
             mirror_tile: raw.background.mirror_tile.unwrap_or(false),
             cache_shader: raw.background.cache_shader.unwrap_or(false),
             transparent_shader: raw.background.transparent_shader.unwrap_or(false),
@@ -1385,6 +1386,7 @@ fn resolve_background_kind(
         kind,
         path,
         texture,
+        show_on_lock_screen: _,
         mirror_tile: _,
         cache_shader: _,
         transparent_shader: _,

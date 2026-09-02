@@ -994,6 +994,17 @@ impl ImageCopyCaptureHandler for DriftWm {
 
     fn capture_frame(&mut self, capture: PendingCapture) {
         use driftwm::protocols::image_copy_capture::PendingCaptureKind;
+        use smithay::reexports::wayland_protocols::ext::image_copy_capture::v1::server::ext_image_copy_capture_frame_v1::FailureReason;
+
+        // An output capture is composed from the secure lock frame, but a
+        // toplevel capture bypasses output composition and would expose an
+        // ordinary window beneath the lock surface.
+        if self.session_lock.is_locked() && matches!(&capture.kind, PendingCaptureKind::Toplevel(_))
+        {
+            capture.frame.failed(FailureReason::Unknown);
+            return;
+        }
+
         // Kick a redraw so an idle-system capture is fulfilled promptly instead
         // of stalling until unrelated damage. Toplevel captures drain on any
         // output's render path, so the active output suffices.
@@ -1268,6 +1279,7 @@ impl SessionLockHandler for DriftWm {
             None => {}
         }
         tracing::info!("Session lock requested");
+        self.capture_lock_views();
         let token = self.arm_pending_deadline();
         // A dark panel has no desktop to flash, and is the case most needing
         // this: the standard idle setup blanks it minutes before locking, and
@@ -1283,7 +1295,9 @@ impl SessionLockHandler for DriftWm {
             ready_outputs: HashSet::new(),
             // With no deadline, nothing bounds how long `Pending` could leave
             // the desktop up with input dead — degrade to blanking instead.
-            keep_lock_frames: token.is_none() || any_output_dark,
+            keep_lock_frames: self.config.background.show_on_lock_screen
+                || token.is_none()
+                || any_output_dark,
             deadline_token: token,
         };
 
@@ -1420,6 +1434,7 @@ impl SessionLockHandler for DriftWm {
         pointer.set_location(canvas_pos);
         self.session_lock = SessionLock::Unlocked;
         self.lock_surfaces.clear();
+        self.lock_views.clear();
         // A finger still down at unlock would otherwise leave its slot
         // allowlisted — the unlocked `on_touch_up` branch never removes one.
         self.touch_state.lock_slots.clear();

@@ -12,8 +12,8 @@ use driftwm::stage::StageElement;
 #[cfg(test)]
 use super::OutputState;
 use super::{
-    CameraSeed, DriftWm, StageWindow, canvas_render_loc, init_output_state, output_logical_size,
-    output_state,
+    CameraSeed, DriftWm, LockView, StageWindow, canvas_render_loc, init_output_state,
+    output_logical_size, output_state,
 };
 
 impl DriftWm {
@@ -204,6 +204,16 @@ impl DriftWm {
         let effective_camera = output_state(output).camera;
         self.space
             .map_output(output, effective_camera.to_i32_round());
+        if self.session_lock.is_locked() {
+            let view = {
+                let os = output_state(output);
+                LockView {
+                    camera: os.camera,
+                    zoom: os.zoom,
+                }
+            };
+            self.lock_views.insert(output.name(), view);
+        }
         self.recompute_decoration_scale();
 
         // Both are no-ops when no windows exist, so this is safe at boot too.
@@ -293,6 +303,7 @@ impl DriftWm {
 
         self.exit_fullscreen_on(output);
         self.render.remove_output(&output.name());
+        self.lock_views.remove(&output.name());
         self.lock_surfaces.remove(output);
         self.redraws_needed.remove(output);
         self.stop_awaiting_lock_frame(output);

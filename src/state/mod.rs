@@ -249,6 +249,12 @@ pub enum SessionLock {
     },
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LockView {
+    pub camera: Point<f64, Logical>,
+    pub zoom: f64,
+}
+
 impl SessionLock {
     /// Whether the session is locked at all — pending and confirmed alike. Both
     /// blank the screen, so every input/navigation gate wants this, not a
@@ -720,6 +726,8 @@ pub struct DriftWm {
     pub gamma_control_manager_state: driftwm::protocols::gamma_control::GammaControlManagerState,
     pub session_lock: SessionLock,
     pub lock_surfaces: HashMap<Output, LockSurface>,
+    /// Per-output viewport frozen when the current session lock was requested.
+    pub lock_views: HashMap<String, LockView>,
 
     pub pointer_over_layer: bool,
     /// Last pointer hit-test landed on a screen-space target — a wlr layer or a

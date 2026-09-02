@@ -245,6 +245,7 @@ pub(super) struct BackgroundFileConfig {
     pub path: Option<String>,
     /// Optional image sampled by a `type = "shader"` background via `tex`.
     pub texture: Option<String>,
+    pub show_on_lock_screen: Option<bool>,
     /// Mirror-fold a `type = "tile"` image so non-seamless edges tile cleanly.
     pub mirror_tile: Option<bool>,
     pub cache_shader: Option<bool>,

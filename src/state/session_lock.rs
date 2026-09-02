@@ -24,7 +24,7 @@ use smithay::{
     wayland::session_lock::SessionLocker,
 };
 
-use super::{DriftWm, FocusTarget, SessionLock};
+use super::{DriftWm, FocusTarget, LockView, SessionLock, output_state};
 
 /// How long to wait for the outstanding outputs before blanking them instead.
 ///
@@ -46,6 +46,47 @@ pub const LOCK_CONFIRM_TIMEOUT: Duration = Duration::from_secs(1);
 pub const PENDING_LOCK_DEADLINE: Duration = Duration::from_secs(1);
 
 impl DriftWm {
+    /// Freeze the current per-output canvas view for the lifetime of a lock.
+    pub fn capture_lock_views(&mut self) {
+        self.lock_views = self
+            .space
+            .outputs()
+            .map(|output| {
+                let view = {
+                    let os = output_state(output);
+                    LockView {
+                        camera: os.camera,
+                        zoom: os.zoom,
+                    }
+                };
+                (output.name(), view)
+            })
+            .collect();
+    }
+
+    /// View used to update and draw the configured background for this frame.
+    pub fn background_render_view(
+        &self,
+        output: &Output,
+    ) -> (smithay::utils::Point<f64, smithay::utils::Logical>, f64) {
+        if self.session_lock.renders_lock_frame()
+            && self.config.background.show_on_lock_screen
+            && let Some(view) = self.lock_views.get(&output.name())
+        {
+            return (view.camera, view.zoom);
+        }
+        self.world_view(output)
+    }
+
+    /// Whether this output's current composition includes the canvas background.
+    pub fn output_renders_background(&self, output: &Output) -> bool {
+        if self.session_lock.renders_lock_frame() {
+            self.config.background.show_on_lock_screen
+        } else {
+            !self.fullscreen_conceals_canvas(output)
+        }
+    }
+
     /// Enter [`SessionLock::Locked`] on the lock surface's first commit and
     /// start waiting for the outputs to put a lock frame on screen.
     ///

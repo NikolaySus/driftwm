@@ -657,6 +657,15 @@ pub fn render_toplevel_captures(state: &mut crate::state::DriftWm, renderer: &mu
     let scale = Scale::from(1.0);
     let fail_reason = smithay::reexports::wayland_protocols::ext::image_copy_capture::v1::server::ext_image_copy_capture_frame_v1::FailureReason::Unknown;
 
+    // Defense in depth for frames queued just before the lock request: unlike
+    // output captures, toplevel captures do not pass through lock composition.
+    if state.session_lock.is_locked() {
+        for capture in pending {
+            capture.frame.failed(fail_reason);
+        }
+        return;
+    }
+
     for capture in pending {
         let PendingCaptureKind::Toplevel(ref surface) = capture.kind else {
             continue;

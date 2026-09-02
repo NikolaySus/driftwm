@@ -1285,6 +1285,9 @@ pub enum BackgroundKind {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BackgroundConfig {
     pub kind: BackgroundKind,
+    /// Render this background underneath transparent session-lock surfaces.
+    /// Off by default so existing opaque lock-screen setups are unchanged.
+    pub show_on_lock_screen: bool,
     /// Mirror-fold a `Tile` image so non-seamless edges meet a reflection,
     /// hiding tile seams. No-op for non-tile backgrounds.
     pub mirror_tile: bool,

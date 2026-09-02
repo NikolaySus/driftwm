@@ -333,13 +333,15 @@ pub(crate) fn render_if_needed(data: &mut DriftWm) {
         // visible set fully resolves. Otherwise the loop idles after pan
         // stops and blurry chunks stay covered by the fallback plane until
         // unrelated damage (cursor, animation, client commit) wakes us.
-        if let Some(cache) = data.render.cached_tile_chunks.get(&surface.output.name())
+        if data.output_renders_background(&surface.output)
+            && let Some(cache) = data.render.cached_tile_chunks.get(&surface.output.name())
             && cache.has_pending_loads()
         {
             data.redraws_needed.insert(surface.output.clone());
         }
         // Same for chunked shader-bake: refine sharp chunks after pan stops.
-        if let Some(cache) = data.render.cached_shader_chunks.get(&surface.output.name())
+        if data.output_renders_background(&surface.output)
+            && let Some(cache) = data.render.cached_shader_chunks.get(&surface.output.name())
             && cache.has_pending_bakes()
         {
             data.redraws_needed.insert(surface.output.clone());
@@ -1462,7 +1464,7 @@ fn render_frame(
     data.display_handle.flush_clients().ok();
 
     // Read per-output state for this frame
-    let (cur_camera, cur_zoom) = data.world_view(output);
+    let (cur_camera, cur_zoom) = data.background_render_view(output);
     let (last_cam, last_zoom) = {
         let os = crate::state::output_state(output);
         (os.last_rendered_camera, os.last_rendered_zoom)
@@ -1668,7 +1670,7 @@ fn render_frame(
 
     // Record camera+zoom for next-frame change detection
     {
-        let (camera, zoom) = data.world_view(output);
+        let (camera, zoom) = data.background_render_view(output);
         let mut os = crate::state::output_state(output);
         os.last_rendered_camera = camera;
         os.last_rendered_zoom = zoom;

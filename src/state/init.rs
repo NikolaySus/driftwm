@@ -343,6 +343,7 @@ impl DriftWm {
             gamma_control_manager_state,
             session_lock: SessionLock::Unlocked,
             lock_surfaces: HashMap::new(),
+            lock_views: HashMap::new(),
             pointer_over_layer: false,
             pointer_over_screen_space: false,
             canvas_layers: Vec::new(),

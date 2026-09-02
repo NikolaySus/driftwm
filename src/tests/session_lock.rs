@@ -14,6 +14,7 @@
 use std::time::{Duration, Instant};
 
 use driftwm::canvas::{CanvasPos, canvas_to_screen};
+use driftwm::config::Config;
 use smithay::desktop::Window;
 use smithay::output::Output;
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
@@ -842,6 +843,67 @@ fn an_output_going_dark_during_pending_stops_the_desktop_being_painted() {
          the input that wakes the panel would otherwise light it straight onto \
          whatever this `Pending` is showing"
     );
+}
+
+#[test]
+fn lock_background_switches_to_secure_frames_immediately_and_freezes_the_view() {
+    let config = Config::from_toml(
+        r#"
+        [background]
+        show_on_lock_screen = true
+        "#,
+    )
+    .unwrap();
+    let mut f = Fixture::with_config(config);
+    let output = f.add_output(1, (1920, 1080));
+    let id = f.add_client();
+    let camera = Point::from((240.0, -180.0));
+    custom_view(&mut f, camera, 1.75);
+
+    f.client(id).lock_session();
+    f.roundtrip(id);
+
+    assert!(
+        matches!(f.state().session_lock, SessionLock::Pending { .. }),
+        "precondition: no lock surface has committed yet"
+    );
+    assert!(
+        f.state().session_lock.renders_lock_frame(),
+        "an enabled lock background must hide ordinary content on the initial lock request"
+    );
+    assert_eq!(
+        f.state().background_render_view(&output),
+        (camera, 1.75),
+        "the lock background starts from the visible canvas view"
+    );
+
+    custom_view(&mut f, Point::from((-900.0, 700.0)), 0.4);
+    assert_eq!(
+        f.state().background_render_view(&output),
+        (camera, 1.75),
+        "later desktop viewport changes must not move the lock background"
+    );
+}
+
+#[test]
+fn lock_background_view_is_cleared_on_unlock() {
+    let config = Config::from_toml(
+        r#"
+        [background]
+        show_on_lock_screen = true
+        "#,
+    )
+    .unwrap();
+    let mut f = Fixture::with_config(config);
+    f.add_output(1, (1920, 1080));
+    let id = f.add_client();
+
+    f.client(id).lock_session();
+    f.roundtrip(id);
+    assert!(!f.state().lock_views.is_empty());
+
+    f.state().unlock();
+    assert!(f.state().lock_views.is_empty());
 }
 
 /// `new_surface` must refuse a lock surface from any client other than the

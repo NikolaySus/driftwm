@@ -136,12 +136,42 @@ use crate::state::StageWindow;
 use driftwm::canvas;
 use driftwm::window_ext::WindowExt;
 
+/// Build the configured canvas background for one output and render view.
+fn build_background_elements(
+    state: &mut crate::state::DriftWm,
+    renderer: &mut GlesRenderer,
+    output: &Output,
+    camera: Point<f64, Logical>,
+    zoom: f64,
+    visible_rect: Rectangle<i32, Logical>,
+) -> Vec<OutputRenderElements> {
+    if let Some(cache) = state.render.cached_shader_chunks.get_mut(&output.name()) {
+        cache
+            .render_elements(visible_rect, renderer, camera, zoom)
+            .into_iter()
+            .map(OutputRenderElements::TileBgChunk)
+            .collect()
+    } else if let Some(cache) = state.render.cached_tile_chunks.get_mut(&output.name()) {
+        // Bound render-thread GLES uploads while decoded chunks arrive from
+        // workers. Coarser LODs and the fallback plane cover the remainder.
+        cache.ensure_visible_loaded(visible_rect, renderer, zoom, 8);
+        tile_chunks::chunk_render_elements(cache, visible_rect, camera, zoom)
+            .into_iter()
+            .map(OutputRenderElements::TileBgChunk)
+            .collect()
+    } else if let Some(bg) = state.render.cached_bg.get(&output.name()) {
+        bg.render_element(zoom).into_iter().collect()
+    } else {
+        Vec::new()
+    }
+}
+
 /// Render elements for a locked session: the lock surface, with the cursor
 /// over it. A lock client's `wl_pointer.set_cursor` arrives as a
 /// `CursorImageStatus` we composite ourselves, exactly as for any other
 /// client — nothing draws a cursor here but us.
 fn compose_lock_frame(
-    state: &crate::state::DriftWm,
+    state: &mut crate::state::DriftWm,
     renderer: &mut GlesRenderer,
     output: &Output,
     cursor_elements: Vec<OutputRenderElements>,
@@ -161,6 +191,35 @@ fn compose_lock_frame(
                 Kind::Unspecified,
             );
         elements.extend(lock_elements.into_iter().map(OutputRenderElements::Layer));
+    }
+
+    if state.config.background.show_on_lock_screen {
+        let (camera, zoom) = state.background_render_view(output);
+        let viewport_size = crate::state::output_logical_size(output);
+        let name = output.name();
+        if !state.render.cached_bg.contains_key(&name)
+            && !state.render.cached_tile_chunks.contains_key(&name)
+            && !state.render.cached_shader_chunks.contains_key(&name)
+        {
+            init_background(state, renderer, viewport_size, &name);
+            update_background_element(
+                state,
+                output,
+                camera,
+                zoom,
+                Point::from((f64::NAN, f64::NAN)),
+                f64::NAN,
+            );
+        }
+        let visible_rect = canvas::visible_canvas_rect(camera.to_i32_round(), viewport_size, zoom);
+        elements.extend(build_background_elements(
+            state,
+            renderer,
+            output,
+            camera,
+            zoom,
+            visible_rect,
+        ));
     }
 
     elements
@@ -1631,27 +1690,8 @@ pub fn compose_frame(
 
     let bg_elements: Vec<OutputRenderElements> = if fullscreen_conceals {
         vec![]
-    } else if let Some(cache) = state.render.cached_shader_chunks.get_mut(&output.name()) {
-        cache
-            .render_elements(visible_rect, renderer, camera, zoom)
-            .into_iter()
-            .map(OutputRenderElements::TileBgChunk)
-            .collect()
-    } else if let Some(cache) = state.render.cached_tile_chunks.get_mut(&output.name()) {
-        // 8 GLES uploads/frame: decode is off-thread, so render-time per
-        // blob is the only constraint. import_memory of a 256×256 RGBA8 is
-        // sub-ms on M1, ~2-3ms on weak iGPUs — 8 keeps upload under ~25ms on
-        // the slow path and drains a worker burst in one frame on fast
-        // hardware. Coarser-LOD overlays + fallback plane cover undrained.
-        cache.ensure_visible_loaded(visible_rect, renderer, zoom, 8);
-        tile_chunks::chunk_render_elements(cache, visible_rect, camera, zoom)
-            .into_iter()
-            .map(OutputRenderElements::TileBgChunk)
-            .collect()
-    } else if let Some(bg) = state.render.cached_bg.get(&output.name()) {
-        bg.render_element(zoom).into_iter().collect()
     } else {
-        vec![]
+        build_background_elements(state, renderer, output, camera, zoom, visible_rect)
     };
 
     #[cfg(feature = "profile-with-tracy")]

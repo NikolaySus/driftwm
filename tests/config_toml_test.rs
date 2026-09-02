@@ -889,6 +889,23 @@ fn toml_background_transparent_shader_defaults_false() {
 }
 
 #[test]
+fn toml_background_show_on_lock_screen_parses() {
+    let config = Config::from_toml(
+        r#"
+        [background]
+        show_on_lock_screen = true
+        "#,
+    )
+    .unwrap();
+    assert!(config.background.show_on_lock_screen);
+}
+
+#[test]
+fn toml_background_show_on_lock_screen_defaults_false() {
+    assert!(!Config::default().background.show_on_lock_screen);
+}
+
+#[test]
 fn toml_background_new_form_tile() {
     let toml = r#"
         [background]

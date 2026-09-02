@@ -154,8 +154,8 @@ impl DriftWm {
             .is_none_or(|t| t.elapsed() >= std::time::Duration::from_secs_f64(1.0 / fps as f64))
     }
 
-    /// Outputs whose animated background can actually render: active, canvas not
-    /// concealed by a fullscreen window, not DPMS-off. Concealed and DPMS-off
+    /// Outputs whose animated background can actually render: active, visible
+    /// in the current desktop or lock composition, and not DPMS-off. Concealed and DPMS-off
     /// outputs stop rendering the background, so their `background_last_animate`
     /// stamps go stale and would otherwise read as permanently due. A
     /// fullscreen-entry transition keeps its canvas visible until the window
@@ -169,7 +169,7 @@ impl DriftWm {
     pub(crate) fn background_render_eligible_outputs(&self) -> impl Iterator<Item = &Output> {
         self.active_outputs
             .iter()
-            .filter(|o| !self.fullscreen_conceals_canvas(o) && !self.dpms_off_outputs.contains(o))
+            .filter(|o| self.output_renders_background(o) && !self.dpms_off_outputs.contains(o))
     }
 
     /// Owned-name variant of [`Self::background_render_eligible_outputs`] for

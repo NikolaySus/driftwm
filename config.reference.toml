@@ -339,6 +339,10 @@
 # # tile/wallpaper PNGs with an alpha channel become see-through automatically.
 # # See docs/shaders.md.
 # transparent_shader = false
+# # Render the configured background underneath transparent ext-session-lock-v1
+# # surfaces. Ordinary windows and layer-shell surfaces remain excluded. Keep
+# # this off for lock clients that paint an opaque background.
+# show_on_lock_screen = false
 # # Memory ceiling (MB) shared by cache_shader and gigapixel-TIFF wallpapers,
 # # with LRU eviction. Raise it for sharper revisits on large / HiDPI displays;
 # # lower it on memory-constrained machines (too low just keeps the background
