@@ -25,6 +25,86 @@ use crate::state::SessionLock;
 use super::client::{ClientId, LayerConfigureProps, SyncData};
 use super::{Fixture, adopt_last_configure, map_window, tick_until_settled};
 
+#[test]
+fn autohide_panel_filters_render_and_input_until_super_then_hides_after_delay() {
+    use smithay::wayland::shell::wlr_layer::Layer;
+    use std::time::Instant;
+
+    let mut f = Fixture::with_config(super::config("[panel]\nautohide = true"));
+    let output = f.add_output(1, (1920, 1080));
+    let id = f.add_client();
+    map_layer(
+        &mut f,
+        id,
+        None,
+        zwlr_layer_shell_v1::Layer::Overlay,
+        "waybar",
+    );
+    map_layer(
+        &mut f,
+        id,
+        None,
+        zwlr_layer_shell_v1::Layer::Overlay,
+        "other",
+    );
+    assert_eq!(f.state().layers_on_sorted(&output, Layer::Overlay).len(), 1);
+    let keyboard = f.state().seat.get_keyboard().unwrap();
+    let mut mods = keyboard.modifier_state();
+    mods.logo = true;
+    keyboard.set_modifier_state(mods);
+    let now = Instant::now();
+    f.state().update_panel_visibility(now);
+    assert_eq!(f.state().layers_on_sorted(&output, Layer::Overlay).len(), 2);
+    mods.logo = false;
+    keyboard.set_modifier_state(mods);
+    // Keep the pointer away from both the reveal edge and the panel.
+    f.state()
+        .seat
+        .get_pointer()
+        .unwrap()
+        .set_location((800.0, 800.0).into());
+    f.state().update_panel_visibility(now);
+    assert!(!f.state().panel_is_hidden(&output, "waybar"));
+    f.state()
+        .update_panel_visibility(now + Duration::from_millis(301));
+    assert!(f.state().panel_is_hidden(&output, "waybar"));
+    f.state()
+        .reload_config_from_contents("[panel]\nautohide = false");
+    assert_eq!(f.state().layers_on_sorted(&output, Layer::Overlay).len(), 2);
+    // The headless fixture has no DRM backend to consume reload's mode request.
+    f.state().pending_mode_changes.clear();
+}
+
+#[test]
+fn panel_edge_is_output_local_and_independent_of_canvas_zoom() {
+    use crate::state::output_state;
+    use driftwm::canvas::{ScreenPos, screen_to_canvas};
+    use std::time::Instant;
+
+    let mut f = Fixture::with_config(super::config("[panel]\nautohide = true"));
+    let first = f.add_output(1, (1920, 1080));
+    let second = f.add_output(2, (2560, 1440));
+    f.state().focused_output = Some(second.clone());
+    let (camera, zoom) = {
+        let mut os = output_state(&second);
+        os.camera = (3456.0, -1234.0).into();
+        os.zoom = 0.25;
+        (os.camera, os.zoom)
+    };
+    let pointer = f.state().seat.get_pointer().unwrap();
+    pointer.set_location(screen_to_canvas(ScreenPos((100.0, 2.0).into()), camera, zoom).0);
+    f.state().update_panel_visibility(Instant::now());
+    assert!(f.state().panel_is_hidden(&first, "waybar"));
+    assert!(!f.state().panel_is_hidden(&second, "waybar"));
+    let keyboard = f.state().seat.get_keyboard().unwrap();
+    let mut mods = keyboard.modifier_state();
+    mods.logo = true;
+    keyboard.set_modifier_state(mods);
+    f.state().update_panel_visibility(Instant::now());
+    assert!(!f.state().panel_is_hidden(&first, "waybar"));
+    assert!(!f.state().panel_is_hidden(&second, "waybar"));
+}
+
 /// Map a layer surface on `layer`, give it a buffer, and settle. Returns the
 /// client-side surface.
 fn map_layer(

@@ -5,6 +5,27 @@ use std::hash::Hash;
 use smithay::input::keyboard::{Keysym, ModifiersState};
 use smithay::utils::Transform;
 
+/// Visibility policy for a top-edge layer-shell panel.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct PanelConfig {
+    pub autohide: bool,
+    pub namespace: String,
+    pub edge_size: u32,
+    pub hide_delay_ms: u32,
+}
+
+impl Default for PanelConfig {
+    fn default() -> Self {
+        Self {
+            autohide: false,
+            namespace: "waybar".into(),
+            edge_size: 3,
+            hide_delay_ms: 300,
+        }
+    }
+}
+
 pub const BTN_LEFT: u32 = 0x110;
 pub const BTN_RIGHT: u32 = 0x111;
 pub const BTN_MIDDLE: u32 = 0x112;

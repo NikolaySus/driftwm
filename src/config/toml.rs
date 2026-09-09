@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 pub(super) struct ConfigFile {
+    pub panel: super::PanelConfig,
     pub mod_key: Option<String>,
     pub focus_follows_mouse: Option<bool>,
     pub session: SessionFileConfig,

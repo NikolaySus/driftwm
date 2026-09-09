@@ -423,6 +423,7 @@ impl DriftWm {
             udev_device: None,
             last_titlebar_click: None,
             hot_corner_latch: None,
+            panel_visibility: HashMap::new(),
             pending_click_navigate: None,
             pending_pick: None,
             click_navigate_timer: None,

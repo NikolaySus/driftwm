@@ -416,6 +416,7 @@ impl DriftWm {
             InputEvent::TabletToolButton { event } => self.on_tablet_tool_button::<I>(event),
             _ => {}
         }
+        self.update_panel_visibility(std::time::Instant::now());
     }
 
     /// Whether any suspended stand-in is on the stage — gates the per-motion

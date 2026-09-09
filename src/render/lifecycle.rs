@@ -296,8 +296,9 @@ pub fn post_render(state: &mut crate::state::DriftWm, output: &Output) {
         let output_fullscreen = state.is_output_visually_fullscreen(output);
         let layer_map = layer_map_for_output(output);
         for layer_surface in layer_map.layers() {
-            let on_screen =
-                !lock_frame && (!output_fullscreen || layer_surface.layer() == WlrLayer::Overlay);
+            let on_screen = !lock_frame
+                && !state.panel_is_hidden(output, layer_surface.namespace())
+                && (!output_fullscreen || layer_surface.layer() == WlrLayer::Overlay);
             layer_surface.send_frame(
                 output,
                 time,

@@ -214,7 +214,10 @@ impl DriftWm {
             self.session_store_mark_dirty();
         }
 
+        self.panel_visibility.clear();
         self.config = new_config;
+        self.update_panel_visibility(std::time::Instant::now());
+        self.pending_pointer_resync = true;
 
         // Must stay below the swap: `configure_mouse` and `configure_trackpad`
         // read `self.config`, so running this any earlier applies the settings

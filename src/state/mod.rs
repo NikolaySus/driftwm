@@ -24,6 +24,7 @@ mod layers;
 mod membership;
 mod navigation;
 mod output;
+mod panel;
 pub mod persistence;
 mod pinned;
 pub(crate) use pinned::clamp_pin_frame;
@@ -1032,6 +1033,7 @@ pub struct DriftWm {
     /// even when fullscreen/dragging suppresses the action; cleared only when
     /// the pointer leaves the corner (or that output).
     pub hot_corner_latch: Option<(Output, HotCorner)>,
+    pub panel_visibility: HashMap<Output, panel::PanelVisibility>,
 
     /// Click armed for auto-navigate on release (see `auto_navigate_on_click`).
     pub pending_click_navigate: Option<PendingClickNavigate>,

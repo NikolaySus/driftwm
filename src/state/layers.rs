@@ -47,6 +47,7 @@ impl DriftWm {
             .any(|r| r.layer_order.is_some());
         let mut surfaces: Vec<_> = map
             .layers_on(layer)
+            .filter(|s| !self.panel_is_hidden(output, s.namespace()))
             .enumerate()
             .map(|(map_idx, s)| {
                 let order = if has_orders {

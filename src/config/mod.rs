@@ -158,6 +158,7 @@ pub struct TabletSettings {
 
 #[derive(Debug, PartialEq)]
 pub struct Config {
+    pub panel: PanelConfig,
     pub mod_key: ModKey,
     pub focus_follows_mouse: bool,
     /// Session persistence: close-to-suspend, window restore, and camera restore.
@@ -1234,6 +1235,7 @@ impl Config {
                 .collect(),
             navigation_bookmarks,
             autostart: raw.autostart.unwrap_or_default(),
+            panel: raw.panel,
             env: raw.env,
             child_env,
             window_rules,

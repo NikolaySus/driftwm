@@ -391,6 +391,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     )?;
 
+    // Keep hide deadlines running even when the desktop has no animation.
+    event_loop.handle().insert_source(
+        smithay::reexports::calloop::timer::Timer::from_duration(std::time::Duration::from_millis(
+            50,
+        )),
+        |_, _, data: &mut DriftWm| {
+            data.update_panel_visibility(std::time::Instant::now());
+            smithay::reexports::calloop::timer::TimeoutAction::ToDuration(
+                std::time::Duration::from_millis(50),
+            )
+        },
+    )?;
+
     // After WAYLAND_DISPLAY is set so satellite can connect as a Wayland client.
     xwayland::setup(&mut data);
 

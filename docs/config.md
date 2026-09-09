@@ -67,6 +67,30 @@ systemctl --user mask xdg-desktop-autostart.target
 autostart = ["waybar", "swaync"]
 ```
 
+## `[panel]`
+
+### `autohide`
+
+Default: `false`
+
+Auto-hide a top-edge layer-shell panel by namespace. Configure the panel with no exclusive zone and on the overlay layer (Waybar: exclusive=false, layer="overlay"). Do not set Waybar start_hidden: DriftWM controls drawing and input while the client stays mapped. Super reveals panels on all outputs; the top edge reveals only the pointer's output. Popups keep their panel open.
+
+### `namespace`
+
+Default: `"waybar"`
+
+### `edge_size`
+
+Default: `3`
+
+Top-edge reveal zone in logical pixels, independent of zoom.
+
+### `hide_delay_ms`
+
+Default: `300`
+
+Delay after Super and pointer interaction end.
+
 ## `[session]`
 
 Persist your canvas across restarts. Suspended windows are always saved to ~/.local/state/driftwm/session.json; these flags control the rest.
