@@ -11,7 +11,7 @@ use smithay::utils::{Logical, Physical, Point, Rectangle, Scale, Size};
 
 use super::elements::{OutputRenderElements, corner_round_rect};
 
-/// Uniform declarations for background shaders. All three are optional:
+/// Uniform declarations for background shaders. All are optional:
 /// shaders reference only what they need; undeclared uniforms get location -1
 /// and pushes become silent no-ops (per GL spec). `u_camera` is canvas→screen
 /// offset, `u_zoom` is the canvas→screen scale, `u_time` is animation seconds.
@@ -22,6 +22,14 @@ pub(super) const BG_UNIFORMS: &[UniformName<'static>] = &[
     },
     UniformName {
         name: Cow::Borrowed("u_time"),
+        type_: UniformType::_1f,
+    },
+    UniformName {
+        name: Cow::Borrowed("u_locked"),
+        type_: UniformType::_1f,
+    },
+    UniformName {
+        name: Cow::Borrowed("u_lock_event_age"),
         type_: UniformType::_1f,
     },
     UniformName {
@@ -653,6 +661,14 @@ pub(super) const BG_TEX_UNIFORMS: &[UniformName<'static>] = &[
     },
     UniformName {
         name: Cow::Borrowed("u_time"),
+        type_: UniformType::_1f,
+    },
+    UniformName {
+        name: Cow::Borrowed("u_locked"),
+        type_: UniformType::_1f,
+    },
+    UniformName {
+        name: Cow::Borrowed("u_lock_event_age"),
         type_: UniformType::_1f,
     },
     UniformName {

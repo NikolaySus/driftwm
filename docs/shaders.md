@@ -64,6 +64,8 @@ The result covers the entire output behind all windows.
 | `u_camera` | `vec2`  | Canvas→screen offset in canvas pixels (viewport's top-left)       |
 | `u_zoom`   | `float` | Canvas→screen scale (1.0 = unzoomed, >1 zoomed in, <1 zoomed out) |
 | `u_time`   | `float` | Accumulated animation seconds (configurable speed)                 |
+| `u_locked` | `float` | 1.0 while pending/locked, otherwise 0.0 |
+| `u_lock_event_age` | `float` | Real seconds since the latest lock/unlock event; -1.0 before the first event |
 
 All three are optional — declare only the ones your shader uses.
 
@@ -122,7 +124,7 @@ void main() {
   functions wrap.
 - **Animated shaders**: `u_time` gives accumulated animation seconds, enabling
   time-driven animations. driftwm re-renders every frame when a shader uses
-  `u_time`, unless `animate_fps` caps the rate.
+  `u_time` or `u_lock_event_age`, unless `animate_fps` caps the rate.
 - **Zoom-aware shaders**: declare `uniform float u_zoom;` to react to viewport
   zoom. Common pattern: divide canvas-pixel sizes by `u_zoom` to keep features
   the same screen size at any zoom level (e.g. `DOT_RADIUS / u_zoom`).
@@ -159,6 +161,8 @@ Adding a `texture` compiles the shader as a _texture_ shader, whose input set is
 | `u_camera`       | `vec2`      | driftwm     | Canvas→screen offset in canvas pixels           |
 | `u_zoom`         | `float`     | driftwm     | Canvas→screen scale                             |
 | `u_time`         | `float`     | driftwm     | Accumulated animation seconds                   |
+| `u_locked` | `float` | driftwm | 1.0 while pending/locked, otherwise 0.0 |
+| `u_lock_event_age` | `float` | driftwm | Real seconds since the latest lock/unlock event; -1.0 initially |
 
 Notes on the texture path:
 
@@ -248,6 +252,35 @@ All outputs share one clock, which advances even while the background is hidden.
 Invalid negative/non-finite speeds warn and fall back to 1.0 for normal speed,
 or the normal speed for lock speed. Unknown easing names warn and use ease-in-out.
 
+### Lock/unlock effects
+
+Declare either lock uniform only when needed. `u_locked` changes on an accepted
+lock request (including pending locks), and returns to zero on actual unlock.
+`u_lock_event_age` uses real monotonic time, independent of animation speed.
+Before the first event it is -1.0; a new lock/unlock resets it to zero. Sample it
+to drive a finite effect without remembering prior frames:
+
+```glsl
+uniform float u_locked;
+uniform float u_lock_event_age;
+// Inside main(), after computing color:
+if (u_lock_event_age >= 0.0 && u_lock_event_age < 0.8) {
+    float pulse = 1.0 - smoothstep(0.0, 0.8, u_lock_event_age);
+    color.rgb *= 1.0 + mix(0.25, -0.25, u_locked) * pulse;
+}
+```
+
+Lock confirmation, rejected requests, locker failure/replacement, and config
+reloads do not retrigger events. Shader recreation and new outputs sample the
+same event clock; hidden backgrounds do not replay missed effects. These signals
+never delay locking or expose ordinary windows on the lock screen. Unlock
+effects render behind the restored windows.
+
+State-only shaders redraw on events. Event-age shaders remain animation-scheduled
+while visible at `animate_fps`, even after their own effect has finished: the
+compositor cannot infer an arbitrary shader's duration. Both uniforms disable
+static chunk baking. Existing shaders need no changes.
+
 ### When `cache_shader` is safe
 
 Baking renders the shader once into a texture and pans that texture, so a heavy
@@ -260,7 +293,8 @@ vec2 canvas = v_coords * size + u_camera;   // pan shifts the image 1:1
 ```
 
 Parallax (`u_camera * factor`) bakes wrong: the texture pans 1:1 no matter what
-factor the shader applied. Shaders reading `u_time` or `u_zoom` are never baked
+factor the shader applied. Shaders reading `u_time`, `u_zoom`, `u_locked`, or
+`u_lock_event_age` are never baked
 and always render live, so the flag costs nothing there.
 
 ## Transparent backgrounds

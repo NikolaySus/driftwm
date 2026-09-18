@@ -60,6 +60,7 @@ pub struct AnimationClock {
     target_speed: f64,
     settings: AnimationSettings,
     locked: bool,
+    last_lock_event: Option<Instant>,
 }
 
 impl AnimationClock {
@@ -71,6 +72,7 @@ impl AnimationClock {
             target_speed: settings.speed,
             settings,
             locked: false,
+            last_lock_event: None,
         }
     }
 
@@ -101,6 +103,9 @@ impl AnimationClock {
             return;
         }
         let (time, speed) = self.sample(now);
+        if self.locked != locked {
+            self.last_lock_event = Some(now);
+        }
         self.epoch = now;
         self.time = time;
         self.from_speed = speed;
@@ -111,6 +116,18 @@ impl AnimationClock {
         };
         self.settings = settings;
         self.locked = locked;
+    }
+
+    pub fn last_lock_event(&self) -> Option<Instant> {
+        self.last_lock_event
+    }
+
+    /// Real time, independent of wallpaper speed and renderer lifetime.
+    pub fn lock_signals(&self, now: Instant) -> (f32, f32) {
+        let age = self.last_lock_event.map_or(-1.0, |event| {
+            now.saturating_duration_since(event).as_secs_f32()
+        });
+        (if self.locked { 1.0 } else { 0.0 }, age)
     }
 }
 
@@ -144,6 +161,35 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn lock_signals_use_real_time_and_only_state_changes_retrigger() {
+        let now = Instant::now();
+        let settings = AnimationSettings {
+            speed: 0.0,
+            lock_speed: 0.0,
+            ..AnimationSettings::default()
+        };
+        let mut clock = AnimationClock::new(now, settings);
+        assert_eq!(clock.lock_signals(now), (0.0, -1.0));
+        clock.configure(now, true, settings);
+        let later = now + Duration::from_millis(400);
+        assert_eq!(clock.lock_signals(later), (1.0, 0.4));
+        assert_eq!(clock.sample(later).0, 0.0);
+        clock.configure(later, true, AnimationSettings::default());
+        assert_eq!(clock.lock_signals(later), (1.0, 0.4));
+        assert_eq!(clock.last_lock_event(), Some(now));
+        for _ in 0..3 {
+            assert_eq!(clock.lock_signals(later), (1.0, 0.4));
+        }
+        clock.configure(later, false, settings);
+        assert_eq!(clock.lock_signals(later), (0.0, 0.0));
+        clock.configure(later + Duration::from_millis(50), true, settings);
+        assert_eq!(
+            clock.lock_signals(later + Duration::from_secs(2)),
+            (1.0, 1.95)
+        );
     }
 
     #[test]

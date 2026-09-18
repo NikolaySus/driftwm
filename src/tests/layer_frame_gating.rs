@@ -26,6 +26,49 @@ use super::client::{ClientId, LayerConfigureProps, SyncData};
 use super::{Fixture, adopt_last_configure, map_window, tick_until_settled};
 
 #[test]
+fn lock_signal_damage_is_per_output_and_does_not_require_animation() {
+    use crate::render::update_background_element;
+    use std::time::Instant;
+    let mut f = Fixture::new();
+    let a = f.add_output(1, (1920, 1080));
+    let b = f.add_output(2, (1920, 1080));
+    f.state().render.background_uses_lock_signals = true;
+    let update = |f: &mut Fixture, output: &Output| {
+        update_background_element(
+            f.state(),
+            output,
+            (0.0, 0.0).into(),
+            1.0,
+            (0.0, 0.0).into(),
+            1.0,
+        )
+        .2
+    };
+    assert!(update(&mut f, &a));
+    assert!(update(&mut f, &b));
+    assert!(!update(&mut f, &a));
+    assert!(!f.state().background_animation_due(&a.name()));
+    let settings = f.state().config.background.animation;
+    f.state()
+        .background_clock
+        .configure(Instant::now(), true, settings);
+    assert!(update(&mut f, &a));
+    assert!(update(&mut f, &b));
+    assert!(!update(&mut f, &b));
+    // Event-age-only shaders must keep ticking, even with a frozen motion clock.
+    f.state().render.background_is_animated = true;
+    f.state().config.background.animate_fps = 60;
+    assert!(f.state().background_animation_due(&a.name()));
+    assert!(update(&mut f, &a));
+    assert!(!f.state().background_animation_due(&a.name()));
+    assert!(f.state().background_animation_due(&b.name()));
+    // Headless outputs have no backend teardown; exercise the production cleanup.
+    f.state().render.remove_output(&a.name());
+    f.state().render.remove_output(&b.name());
+    assert!(f.state().render.background_last_lock_event.is_empty());
+}
+
+#[test]
 fn autohide_panel_filters_render_and_input_until_super_then_hides_after_delay() {
     use smithay::wayland::shell::wlr_layer::Layer;
     use std::time::Instant;

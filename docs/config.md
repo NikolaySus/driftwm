@@ -702,7 +702,7 @@ tile mode only: mirror-fold the image (2×2 reflected block) so a non-seamless i
 
 Default: `false`
 
-Bake a heavy static shader to a texture once and pan that, instead of recomputing it every frame. Only for shaders that slide rigidly with the camera; animated (u_time) and zoom-dependent (u_zoom) ones always render live.
+Bake a heavy static shader to a texture once and pan that, instead of recomputing it every frame. Only for shaders that slide rigidly with the camera; time (u_time), zoom (u_zoom), and lock-signal dependent shaders (u_locked, u_lock_event_age) always render live. See docs/shaders.md.
 
 ### `transparent_shader`
 

@@ -3,6 +3,10 @@ use std::time::Instant;
 use super::DriftWm;
 
 impl DriftWm {
+    pub(crate) fn background_lock_signals(&self) -> (f32, f32) {
+        self.background_clock.lock_signals(Instant::now())
+    }
+
     pub(crate) fn sync_background_clock(&mut self) {
         self.background_clock.configure(
             Instant::now(),

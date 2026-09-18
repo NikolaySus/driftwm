@@ -93,6 +93,8 @@ impl DriftWm {
         // can't force per-frame redraws or push unused uniforms.
         self.render.background_shader = None;
         self.render.background_is_animated = false;
+        self.render.background_uses_lock_signals = false;
+        self.render.background_last_lock_event.clear();
         self.render.background_uses_camera = false;
         self.render.background_uses_zoom = false;
         self.render.cached_bg.clear();

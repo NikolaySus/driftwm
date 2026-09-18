@@ -1375,6 +1375,10 @@ impl DriftWm {
                 "background_last_animate",
                 self.render.background_last_animate.len(),
             ),
+            (
+                "background_last_lock_event",
+                self.render.background_last_lock_event.len(),
+            ),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v))

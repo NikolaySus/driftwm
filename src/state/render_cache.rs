@@ -18,8 +18,10 @@ pub struct RenderCache {
     pub border_shader: Option<GlesPixelProgram>,
     pub corner_clip_shader: Option<GlesTexProgram>,
     pub background_shader: Option<GlesPixelProgram>,
-    /// `u_time` is referenced — drives per-frame redraws.
+    /// `u_time` or `u_lock_event_age` is referenced — drives per-frame redraws.
     pub background_is_animated: bool,
+    pub background_uses_lock_signals: bool,
+    pub background_last_lock_event: HashMap<String, Option<std::time::Instant>>,
     /// `u_camera` is referenced — gates camera-driven uniform pushes so a
     /// shader-mode bg referencing none of u_camera/u_zoom/u_time is as cheap
     /// as wallpaper mode (no per-frame CommitCounter bumps).
@@ -91,6 +93,8 @@ impl RenderCache {
             corner_clip_shader: None,
             background_shader: None,
             background_is_animated: false,
+            background_uses_lock_signals: false,
+            background_last_lock_event: HashMap::new(),
             background_uses_camera: false,
             background_uses_zoom: false,
             blur_down_shader: None,
@@ -175,6 +179,7 @@ impl RenderCache {
         self.cached_bg.remove(output_name);
         self.remove_blur_caches(output_name);
         self.background_last_animate.remove(output_name);
+        self.background_last_lock_event.remove(output_name);
         self.cached_error_bar.remove(output_name);
         self.cached_outlines.remove(output_name);
         self.remove_background_chunks(output_name);

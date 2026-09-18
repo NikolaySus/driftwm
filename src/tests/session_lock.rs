@@ -916,6 +916,9 @@ fn background_clock_follows_lock_lifecycle_and_reload_without_resetting() {
     f.roundtrip(id);
     let future = Instant::now() + Duration::from_secs(10);
     let expected = f.state().background_clock.sample(future);
+    let event = f.state().background_clock.last_lock_event();
+    assert!(event.is_some());
+    assert_eq!(f.state().background_clock.lock_signals(future).0, 1.0);
     assert_eq!(expected.1, 0.5);
 
     confirm_lock(&mut f, id, &output);
@@ -933,13 +936,17 @@ fn background_clock_follows_lock_lifecycle_and_reload_without_resetting() {
     f.state().pending_mode_changes.clear();
     assert_eq!(f.state().background_clock.sample(future), expected);
     let before_reload = f.state().background_clock.sample(Instant::now()).0;
+    assert_eq!(f.state().background_clock.last_lock_event(), event);
     f.state()
         .reload_config_from_contents(&text.replace("0.5", "0.25"));
     f.state().pending_mode_changes.clear();
     assert!(f.state().background_clock.sample(Instant::now()).0 >= before_reload);
     assert_eq!(f.state().background_clock.sample(future).1, 0.25);
+    assert_eq!(f.state().background_clock.last_lock_event(), event);
     f.state().unlock();
     assert_eq!(f.state().background_clock.sample(future).1, 1.0);
+    assert_ne!(f.state().background_clock.last_lock_event(), event);
+    assert_eq!(f.state().background_clock.lock_signals(future).0, 0.0);
 }
 
 /// `new_surface` must refuse a lock surface from any client other than the
