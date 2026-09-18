@@ -74,6 +74,10 @@ const FIELDS: &[&str] = &[
     "enabled",
     "shadow",
     "font_size",
+    "animation_speed",
+    "lock_animation_speed",
+    "speed_transition_duration_ms",
+    "speed_transition_easing",
 ];
 
 fn key() -> impl Strategy<Value = String> {

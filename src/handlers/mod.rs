@@ -1270,6 +1270,7 @@ impl SessionLockHandler for DriftWm {
                     keep_lock_frames: true,
                     deadline_token: token,
                 };
+                self.sync_background_clock();
                 // The flag only decides what the *next* frame paints, and a
                 // `Pending` that was showing a static desktop has no redraw
                 // coming to apply it to.
@@ -1300,6 +1301,7 @@ impl SessionLockHandler for DriftWm {
                 || any_output_dark,
             deadline_token: token,
         };
+        self.sync_background_clock();
 
         // Kill all transient input/animation state so nothing fires during lock
         self.gesture_state = None;
@@ -1433,6 +1435,7 @@ impl SessionLockHandler for DriftWm {
         .0;
         pointer.set_location(canvas_pos);
         self.session_lock = SessionLock::Unlocked;
+        self.sync_background_clock();
         self.lock_surfaces.clear();
         self.lock_views.clear();
         // A finger still down at unlock would otherwise leave its slot

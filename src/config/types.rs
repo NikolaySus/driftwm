@@ -1305,6 +1305,7 @@ pub enum BackgroundKind {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BackgroundConfig {
+    pub animation: crate::animation_clock::AnimationSettings,
     pub kind: BackgroundKind,
     /// Render this background underneath transparent session-lock surfaces.
     /// Off by default so existing opaque lock-screen setups are unchanged.

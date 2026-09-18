@@ -906,6 +906,42 @@ fn lock_background_view_is_cleared_on_unlock() {
     assert!(f.state().lock_views.is_empty());
 }
 
+#[test]
+fn background_clock_follows_lock_lifecycle_and_reload_without_resetting() {
+    let text = "[background]\nshow_on_lock_screen = true\nlock_animation_speed = 0.5\nspeed_transition_duration_ms = 1000\n";
+    let mut f = Fixture::with_config(Config::from_toml(text).unwrap());
+    let output = f.add_output(1, (1920, 1080));
+    let id = f.add_client();
+    f.client(id).lock_session();
+    f.roundtrip(id);
+    let future = Instant::now() + Duration::from_secs(10);
+    let expected = f.state().background_clock.sample(future);
+    assert_eq!(expected.1, 0.5);
+
+    confirm_lock(&mut f, id, &output);
+    assert_eq!(f.state().background_clock.sample(future), expected);
+    f.kill_client(id);
+    f.pump(10);
+    assert_eq!(f.state().background_clock.sample(future), expected);
+    let replacement = f.add_client();
+    f.client(replacement).lock_session();
+    f.roundtrip(replacement);
+    confirm_lock(&mut f, replacement, &output);
+    assert_eq!(f.state().background_clock.sample(future), expected);
+
+    f.state().reload_config_from_contents(text);
+    f.state().pending_mode_changes.clear();
+    assert_eq!(f.state().background_clock.sample(future), expected);
+    let before_reload = f.state().background_clock.sample(Instant::now()).0;
+    f.state()
+        .reload_config_from_contents(&text.replace("0.5", "0.25"));
+    f.state().pending_mode_changes.clear();
+    assert!(f.state().background_clock.sample(Instant::now()).0 >= before_reload);
+    assert_eq!(f.state().background_clock.sample(future).1, 0.25);
+    f.state().unlock();
+    assert_eq!(f.state().background_clock.sample(future).1, 1.0);
+}
+
 /// `new_surface` must refuse a lock surface from any client other than the
 /// one holding the lock — see the comment on that guard for why smithay's own
 /// `locked_outputs` check doesn't already cover this.

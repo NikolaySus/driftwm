@@ -10,6 +10,7 @@
 //! grew past 3,000 lines of methods that each had a better home.
 
 mod activation;
+mod background_clock;
 mod cluster_snapshot;
 mod cursor;
 mod edge_pan;
@@ -586,6 +587,7 @@ pub type PointerDelivery = (FocusTarget, Point<f64, Logical>, Point<f64, Logical
 /// Central compositor state.
 pub struct DriftWm {
     pub start_time: Instant,
+    pub background_clock: driftwm::animation_clock::AnimationClock,
     pub display_handle: DisplayHandle,
     pub loop_handle: LoopHandle<'static, DriftWm>,
     pub loop_signal: LoopSignal,

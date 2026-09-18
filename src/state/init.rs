@@ -268,8 +268,12 @@ impl DriftWm {
         let autostart = config.autostart.clone();
         let edge_pan_cursor = config.edge_pan_cursor;
         let bookmarks = config.navigation_bookmarks.clone();
+        let start_time = Instant::now();
+        let background_clock =
+            driftwm::animation_clock::AnimationClock::new(start_time, config.background.animation);
         Self {
-            start_time: Instant::now(),
+            start_time,
+            background_clock,
             display_handle: dh,
             loop_handle,
             loop_signal,

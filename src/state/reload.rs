@@ -216,6 +216,7 @@ impl DriftWm {
 
         self.panel_visibility.clear();
         self.config = new_config;
+        self.sync_background_clock();
         self.update_panel_visibility(std::time::Instant::now());
         self.pending_pointer_resync = true;
 

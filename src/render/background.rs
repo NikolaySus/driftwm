@@ -215,7 +215,7 @@ pub fn update_background_element(
         camera_moved,
         zoom_changed,
         uniforms_stale,
-        time_secs: state.start_time.elapsed().as_secs_f32(),
+        time_secs: state.background_time(),
     };
     if let Some(bg) = state.render.cached_bg.get_mut(&output_name) {
         bg.update(&frame);
@@ -635,7 +635,7 @@ fn try_init_textured_shader_bg(
     let (tex, w, h, _) = load_image_to_texture(renderer, texture)?;
 
     let area = Rectangle::from_size(initial_size);
-    let time_secs = state.start_time.elapsed().as_secs_f32();
+    let time_secs = state.background_time();
     let uniforms = vec![
         Uniform::new("u_camera", (0.0f32, 0.0f32)),
         Uniform::new("u_time", time_secs),
@@ -760,7 +760,7 @@ fn init_shader_bg(
 
     let area = Rectangle::from_size(initial_size);
     let transparent = state.config.background.transparent_shader;
-    let time_secs = state.start_time.elapsed().as_secs_f32();
+    let time_secs = state.background_time();
     let elem = PixelShaderElement::new(
         shader,
         area,
@@ -839,7 +839,7 @@ fn init_default_shader_bg(
 
     let area = Rectangle::from_size(initial_size);
     let transparent = state.config.background.transparent_shader;
-    let time_secs = state.start_time.elapsed().as_secs_f32();
+    let time_secs = state.background_time();
     let elem = PixelShaderElement::new(
         shader,
         area,

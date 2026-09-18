@@ -14,7 +14,7 @@ use super::elements::{OutputRenderElements, corner_round_rect};
 /// Uniform declarations for background shaders. All three are optional:
 /// shaders reference only what they need; undeclared uniforms get location -1
 /// and pushes become silent no-ops (per GL spec). `u_camera` is canvas→screen
-/// offset, `u_zoom` is the canvas→screen scale, `u_time` is seconds since start.
+/// offset, `u_zoom` is the canvas→screen scale, `u_time` is animation seconds.
 pub(super) const BG_UNIFORMS: &[UniformName<'static>] = &[
     UniformName {
         name: Cow::Borrowed("u_camera"),

@@ -728,6 +728,30 @@ Default: `0`
 
 Frame-rate cap (0-1000) for animated (`u_time`) shader backgrounds. 0 = every output frame. Slow-moving shaders look identical well below the refresh rate; between ticks the compositor reuses the composited result instead of re-evaluating the shader, so this directly scales the background's GPU cost.
 
+### `animation_speed`
+
+Default: `1.0`
+
+Shader animation time is independent of the frame-rate cap. Speeds are finite non-negative multipliers; 0 freezes time. Omitted lock_animation_speed inherits animation_speed (the value below matches the default normal speed).
+
+### `lock_animation_speed`
+
+Default: `1.0`
+
+### `speed_transition_duration_ms`
+
+Default: `1000`
+
+Shared lock/unlock transition; 0 switches speed immediately, never time.
+
+### `speed_transition_easing`
+
+Default: `"ease-in-out"`
+
+linear, ease-in, ease-out, ease-in-out (quadratic eased curves).
+
+Interrupted transitions start from the current speed. Config reloads retain animation time; unrelated edits do not restart transitions. All outputs share one clock, which advances even while the wallpaper is hidden.
+
 ## `[bindings]`
 
 ### `disable_defaults`

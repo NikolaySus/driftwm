@@ -767,7 +767,55 @@ impl Config {
             );
         }
 
+        let speed = |value: Option<f64>, fallback: f64, field: &str, errors: &mut Warnings| {
+            let value = value.unwrap_or(fallback);
+            if value.is_finite() && value >= 0.0 {
+                value
+            } else {
+                collect_warn(
+                    errors,
+                    format!(
+                        "config: background.{field} must be finite and non-negative, using {fallback}"
+                    ),
+                );
+                fallback
+            }
+        };
+        let animation_speed = speed(
+            raw.background.animation_speed,
+            1.0,
+            "animation_speed",
+            &mut errors,
+        );
+        let lock_speed = speed(
+            raw.background.lock_animation_speed,
+            animation_speed,
+            "lock_animation_speed",
+            &mut errors,
+        );
+        use crate::animation_clock::{AnimationSettings, Easing};
+        let easing = match raw.background.speed_transition_easing.as_deref() {
+            None | Some("ease-in-out") => Easing::EaseInOut,
+            Some("linear") => Easing::Linear,
+            Some("ease-in") => Easing::EaseIn,
+            Some("ease-out") => Easing::EaseOut,
+            Some(other) => {
+                collect_warn(
+                    &mut errors,
+                    format!(
+                        "config: unknown background.speed_transition_easing '{other}', using ease-in-out"
+                    ),
+                );
+                Easing::EaseInOut
+            }
+        };
         let background = BackgroundConfig {
+            animation: AnimationSettings {
+                speed: animation_speed,
+                lock_speed,
+                duration_ms: raw.background.speed_transition_duration_ms.unwrap_or(1000),
+                easing,
+            },
             show_on_lock_screen: raw.background.show_on_lock_screen.unwrap_or(false),
             mirror_tile: raw.background.mirror_tile.unwrap_or(false),
             cache_shader: raw.background.cache_shader.unwrap_or(false),
@@ -1394,6 +1442,10 @@ fn resolve_background_kind(
         transparent_shader: _,
         cache_budget_mb: _,
         animate_fps: _,
+        animation_speed: _,
+        lock_animation_speed: _,
+        speed_transition_duration_ms: _,
+        speed_transition_easing: _,
     } = raw;
     let texture = texture.as_deref().map(expand_tilde);
     if let Some(t) = kind.as_deref() {

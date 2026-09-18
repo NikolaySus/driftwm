@@ -63,7 +63,7 @@ The result covers the entire output behind all windows.
 | ---------- | ------- | ----------------------------------------------------------------- |
 | `u_camera` | `vec2`  | Canvas→screen offset in canvas pixels (viewport's top-left)       |
 | `u_zoom`   | `float` | Canvas→screen scale (1.0 = unzoomed, >1 zoomed in, <1 zoomed out) |
-| `u_time`   | `float` | Seconds since compositor start                                    |
+| `u_time`   | `float` | Accumulated animation seconds (configurable speed)                 |
 
 All three are optional — declare only the ones your shader uses.
 
@@ -120,7 +120,7 @@ void main() {
   See `extras/wallpapers/dot_grid.glsl` for an example. Noise-based shaders
   using `floor()`/`fract()` internally are naturally resilient since the hash
   functions wrap.
-- **Animated shaders**: `u_time` gives seconds since compositor start, enabling
+- **Animated shaders**: `u_time` gives accumulated animation seconds, enabling
   time-driven animations. driftwm re-renders every frame when a shader uses
   `u_time`, unless `animate_fps` caps the rate.
 - **Zoom-aware shaders**: declare `uniform float u_zoom;` to react to viewport
@@ -158,7 +158,7 @@ Adding a `texture` compiles the shader as a _texture_ shader, whose input set is
 | `u_output_size`  | `vec2`      | driftwm     | Viewport dimensions in pixels (= output / zoom) |
 | `u_camera`       | `vec2`      | driftwm     | Canvas→screen offset in canvas pixels           |
 | `u_zoom`         | `float`     | driftwm     | Canvas→screen scale                             |
-| `u_time`         | `float`     | driftwm     | Seconds since compositor start                  |
+| `u_time`         | `float`     | driftwm     | Accumulated animation seconds                   |
 
 Notes on the texture path:
 
@@ -236,6 +236,17 @@ Other `[background]` keys, described in full in the
 | `transparent_shader` | Honor a shader's output alpha (see below).                                                                     |
 | `cache_budget_mb`    | Memory ceiling (MB) for the bake and gigapixel-TIFF chunk caches. Default 128.                                  |
 | `animate_fps`        | Frame-rate cap for `u_time` shaders. Default 0 = every output frame.                                            |
+| `animation_speed` | Normal animation-time multiplier; default 1.0. Zero freezes time. |
+| `lock_animation_speed` | Animation-time multiplier while locked; omitted inherits normal speed. |
+| `speed_transition_duration_ms` | Shared lock/unlock speed-transition duration; default 1000 ms, 0 switches instantly. |
+| `speed_transition_easing` | `linear`, `ease-in`, `ease-out`, or `ease-in-out` (default); eased curves are quadratic. |
+
+Speed changes do not change the frame-rate cap. Shader time remains continuous
+through locking, unlocking, shader recreation, and config reloads. Interrupted
+transitions start at the current speed and take the full configured duration.
+All outputs share one clock, which advances even while the background is hidden.
+Invalid negative/non-finite speeds warn and fall back to 1.0 for normal speed,
+or the normal speed for lock speed. Unknown easing names warn and use ease-in-out.
 
 ### When `cache_shader` is safe
 

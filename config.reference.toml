@@ -366,6 +366,19 @@
 # # re-evaluating the shader, so this directly scales the background's GPU cost.
 # animate_fps = 0
 
+# # Shader animation time is independent of the frame-rate cap. Speeds are
+# # finite non-negative multipliers; 0 freezes time. Omitted lock_animation_speed
+# # inherits animation_speed (the value below matches the default normal speed).
+# animation_speed = 1.0
+# lock_animation_speed = 1.0
+# # Shared lock/unlock transition; 0 switches speed immediately, never time.
+# speed_transition_duration_ms = 1000
+# # linear, ease-in, ease-out, ease-in-out (quadratic eased curves).
+# speed_transition_easing = "ease-in-out"
+# # Interrupted transitions start from the current speed. Config reloads retain
+# # animation time; unrelated edits do not restart transitions. All outputs share
+# # one clock, which advances even while the wallpaper is hidden.
+
 [bindings]
 # # Opt out of built-in default bindings by category, for a clean slate.
 # # Normally your [keybindings]/[mouse]/[gestures]/[touch] entries merge with

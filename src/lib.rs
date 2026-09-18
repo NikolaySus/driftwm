@@ -1,3 +1,4 @@
+pub mod animation_clock;
 pub mod canvas;
 pub mod config;
 pub mod desktop_entry;
